@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useDashboardData } from "@/hooks/use-dashboard";
+import { useTheme } from "@/hooks/use-theme";
 import { KPICard } from "@/components/KPICard";
 import { IndiaMap } from "@/components/IndiaMap";
+import { exportToPDF, exportToExcel } from "@/lib/export";
 import { 
   Package, Truck, AlertTriangle, CheckCircle2, Printer, 
   FileDown, Database, LayoutDashboard, Search, Filter,
-  ArrowUpRight, Download
+  ArrowUpRight, Download, Moon, Sun
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, 
@@ -25,9 +27,11 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboardData();
+  const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState<'dashboard' | 'data-manager'>('dashboard');
   const [isPrintMode, setIsPrintMode] = useState(false);
   const [selectedRegionKey, setSelectedRegionKey] = useState<string | null>(null);
+  const [filterRegion, setFilterRegion] = useState<string>("");
 
   // Print Handlers
   const handlePrint = () => {
@@ -38,10 +42,28 @@ export default function Dashboard() {
     }, 100);
   };
 
+  // Export handlers
+  const handleExportPDF = () => {
+    if (data) {
+      exportToPDF(data);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (data) {
+      exportToExcel(data);
+    }
+  };
+
   // Helper to get region name safely
   const getRegionName = (key: string) => {
     return data?.regions.find(r => r.key === key)?.name || key;
   };
+
+  // Filter regions based on search
+  const filteredRegions = data?.regions.filter(r => 
+    r.name.toLowerCase().includes(filterRegion.toLowerCase())
+  ) || [];
 
   // Memoized derived data
   const modeSummary = data?.modeSummaries.reduce((acc: any, curr: any) => {
@@ -86,8 +108,15 @@ export default function Dashboard() {
             <Button variant="outline" onClick={handlePrint} className="gap-2">
               <Printer className="w-4 h-4" /> Print
             </Button>
-            <Button variant="outline" className="gap-2">
-              <FileDown className="w-4 h-4" /> Export PDF
+            <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+              <FileDown className="w-4 h-4" /> PDF
+            </Button>
+            <Button variant="outline" onClick={handleExportExcel} className="gap-2">
+              <Download className="w-4 h-4" /> Excel
+            </Button>
+            <Button variant="outline" onClick={toggleTheme} className="gap-2">
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {theme === 'light' ? 'Dark' : 'Light'}
             </Button>
             <Button 
               variant={activeView === 'data-manager' ? "default" : "secondary"}
@@ -247,7 +276,12 @@ export default function Dashboard() {
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                   <h3 className="font-bold text-slate-800">Regional Breakdown & Logistics</h3>
                   <div className="flex gap-2">
-                    <Input placeholder="Search regions..." className="h-8 w-48 text-xs" />
+                    <Input 
+                      placeholder="Search regions..." 
+                      className="h-8 w-48 text-xs"
+                      value={filterRegion}
+                      onChange={(e) => setFilterRegion(e.target.value)}
+                    />
                     <Button size="sm" variant="outline" className="h-8"><Filter className="w-3 h-3 mr-1" /> Filter</Button>
                   </div>
                 </div>
@@ -265,7 +299,7 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.regions.map((region: any) => (
+                      {filteredRegions.map((region: any) => (
                         <TableRow key={region.key} className="group hover:bg-blue-50/30">
                           <TableCell className="font-medium text-slate-900">{region.name}</TableCell>
                           <TableCell className="text-right font-bold text-blue-600">{region.totalOrder.toFixed(2)}</TableCell>

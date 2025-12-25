@@ -1,10 +1,14 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import { setupAuthRoutes } from "./auth-routes";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Setup auth routes
+  setupAuthRoutes(app);
+
   // GET Dashboard Data
   app.get(api.dashboard.get.path, async (req, res) => {
     const data = await storage.getDashboardData();

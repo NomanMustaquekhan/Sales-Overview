@@ -40,10 +40,33 @@ export const modeSummaries = sqliteTable("mode_summaries", {
   total: real("total").notNull().default(0),
 });
 
+// User Management
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  role: text("role").notNull().default("viewer"), // admin, editor, viewer
+  createdAt: integer("created_at", { mode: "timestamp" }).default(new Date()),
+});
+
+// Alerts & Notifications
+export const alerts = sqliteTable("alerts", {
+  id: integer("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // info, warning, error
+  isRead: integer("is_read", { mode: "boolean" }).default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(new Date()),
+});
+
 // === SCHEMAS ===
 export const insertRegionSchema = createInsertSchema(regions).omit({ id: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
 export const insertModeSummarySchema = createInsertSchema(modeSummaries).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertAlertSchema = createInsertSchema(alerts).omit({ id: true });
 
 // === TYPES ===
 export type Region = typeof regions.$inferSelect;
@@ -54,6 +77,12 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type ModeSummary = typeof modeSummaries.$inferSelect;
 export type InsertModeSummary = z.infer<typeof insertModeSummarySchema>;
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Alert = typeof alerts.$inferSelect;
+export type InsertAlert = z.infer<typeof insertAlertSchema>;
 
 export type DashboardData = {
   regions: Region[];
