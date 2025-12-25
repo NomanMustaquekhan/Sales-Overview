@@ -1,16 +1,68 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Server } from "http";
 import { storage } from "./storage";
+import { api } from "@shared/routes";
+import { z } from "zod";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // GET Dashboard Data
+  app.get(api.dashboard.get.path, async (req, res) => {
+    const data = await storage.getDashboardData();
+    res.json(data);
+  });
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Update Region
+  app.put(api.regions.update.path, async (req, res) => {
+    try {
+      const input = api.regions.update.input.parse(req.body);
+      const updated = await storage.updateRegion(req.params.key, input);
+      if (!updated) return res.status(404).json({ message: "Region not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors[0].message });
+      } else {
+        throw err;
+      }
+    }
+  });
+
+  // Update Location
+  app.put(api.locations.update.path, async (req, res) => {
+    try {
+      const input = api.locations.update.input.parse(req.body);
+      const updated = await storage.updateLocation(Number(req.params.id), input);
+      if (!updated) return res.status(404).json({ message: "Location not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors[0].message });
+      } else {
+        throw err;
+      }
+    }
+  });
+
+  // Update Summary
+  app.put(api.modeSummaries.update.path, async (req, res) => {
+    try {
+      const input = api.modeSummaries.update.input.parse(req.body);
+      const updated = await storage.updateModeSummary(req.params.category, input);
+      if (!updated) return res.status(404).json({ message: "Summary not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors[0].message });
+      } else {
+        throw err;
+      }
+    }
+  });
+
+  // Seed DB asynchronously on startup
+  storage.seedDatabase().catch((err) => {
+    console.error("Failed to seed database:", err);
+  });
 
   return httpServer;
 }
